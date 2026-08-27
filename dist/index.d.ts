@@ -71,7 +71,7 @@ type Directive<TInput = unknown, TOutput = unknown> = {
      * }
      * ```
      */
-    transform: (value: TInput, resolve?: (node: unknown) => Promise<unknown>) => Promise<TOutput>;
+    transform: (value: TInput, jectOptions: JectOptions, resolve?: (node: unknown) => Promise<unknown>) => Promise<TOutput>;
     /**
      * Controls whether property values within the directive's input are
      * recursively resolved before the transform is invoked.
@@ -129,6 +129,18 @@ type JectOptions<TVariables extends Record<string, unknown> = Record<string, unk
      * @default []
      */
     directives?: Directive<unknown>[];
+    /**
+     * Specify a custom file loader that allows mock FS's to be used
+     * @param path - the path
+     * @returns Promise<object | undefined>
+     */
+    customFileLoader?: (path: string) => Promise<object | undefined>;
+    /**
+     * Specify a custom file loader that allows mock URL resolvers to be used
+     * @param path - the path
+     * @returns Promise<object | undefined>
+     */
+    customUrlLoader?: (url: string) => Promise<object | undefined>;
 };
 /**
  * Parses and resolves a JSON document from a string.

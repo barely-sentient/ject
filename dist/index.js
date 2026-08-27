@@ -1,5 +1,8 @@
 // src/directives/require.ts
-var WebLoader = async (url) => {
+var WebLoader = async (url, jectOptions) => {
+  if (jectOptions.customUrlLoader) {
+    return jectOptions.customUrlLoader(url);
+  }
   try {
     const response = await fetch(url);
     const result = await response.json();
@@ -9,7 +12,10 @@ var WebLoader = async (url) => {
   }
   return void 0;
 };
-var FileLoader = async (path) => {
+var FileLoader = async (path, jectOptions) => {
+  if (jectOptions.customFileLoader) {
+    return jectOptions.customFileLoader(path);
+  }
   const fs = await import("fs/promises");
   try {
     await fs.access(path);
@@ -23,9 +29,9 @@ var FileLoader = async (path) => {
     return void 0;
   }
 };
-var LoadJson = async (path) => {
+var LoadJson = async (path, jectOptions) => {
   const isNode = typeof process !== "undefined" && typeof process.versions?.node === "string";
-  return isNode ? FileLoader(path) : WebLoader(path);
+  return isNode ? FileLoader(path, jectOptions) : WebLoader(path, jectOptions);
 };
 var requireDirective = {
   /**
@@ -47,12 +53,12 @@ var requireDirective = {
    * @returns A promise resolving to the loaded JSON object, or `undefined`
    * if the resource or resources could not be loaded.
    */
-  transform: async (input) => {
+  transform: async (input, jectOptions) => {
     if (typeof input === "string") {
-      return LoadJson(input);
+      return LoadJson(input, jectOptions);
     }
     const results = await Promise.all(
-      input.map((p) => LoadJson(p))
+      input.map((path) => LoadJson(path, jectOptions))
     );
     if (results.some((result) => result === void 0)) {
       return void 0;
@@ -98,7 +104,7 @@ var defaultDirective = {
    *
    * @returns The supplied value when defined; otherwise the default value.
    */
-  transform: async (input, resolve) => {
+  transform: async (input, jectConfig, resolve) => {
     let value;
     if ("value" in input) {
       value = input.value;
@@ -143,7 +149,7 @@ var createDirectives = (options) => {
     {
       ...requireDirective,
       transformOutput: async (value) => {
-        return handleNode(value, directives);
+        return handleNode(value, directives, options);
       }
     },
     ...options.directives ?? [],
@@ -160,24 +166,24 @@ var parseFromString = async (source, options = {}) => {
     return result;
   }
   const directives = createDirectives(options);
-  return await handleNode(result, directives);
+  return await handleNode(result, directives, options);
 };
 var parseFromUri = async (path, options = {}) => {
-  const resolved = await LoadJson(path);
+  const resolved = await LoadJson(path, options);
   if (resolved === void 0) {
     return void 0;
   }
   const directives = createDirectives(options);
-  const result = await handleNode(resolved, directives);
+  const result = await handleNode(resolved, directives, options);
   return result;
 };
-var handleNode = async (node, directives) => {
+var handleNode = async (node, directives, jectOptions) => {
   if (node === null || typeof node !== "object") {
     return node;
   }
   if (Array.isArray(node)) {
     return Promise.all(
-      node.map((entry) => handleNode(entry, directives))
+      node.map((entry) => handleNode(entry, directives, jectOptions))
     );
   }
   const object = node;
@@ -194,20 +200,20 @@ var handleNode = async (node, directives) => {
       const keys = directive.resolveInput === true ? Object.keys(resolved) : directive.resolveInput;
       for (const key of keys) {
         if (key in resolved) {
-          resolved[key] = await handleNode(resolved[key], directives);
+          resolved[key] = await handleNode(resolved[key], directives, jectOptions);
         }
       }
       input = resolved;
     }
-    const result = await directive.transform(input, (node2) => handleNode(node2, directives));
+    const result = await directive.transform(input, jectOptions, (node2) => handleNode(node2, directives, jectOptions));
     const output = directive.transformOutput ? await directive.transformOutput(result) : result;
-    return handleNode(output, directives);
+    return handleNode(output, directives, jectOptions);
   }
   const entries = await Promise.all(
     Object.entries(object).map(async ([key, value]) => {
       return [
         key,
-        await handleNode(value, directives)
+        await handleNode(value, directives, jectOptions)
       ];
     })
   );
