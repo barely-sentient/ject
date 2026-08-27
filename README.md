@@ -7,13 +7,13 @@ Ject parses JSON documents and recursively resolves **directives** — special n
 ## Installation
 
 ```bash
-npm install ject
+npm install json-ject
 ```
 
 ## Quick Start
 
 ```ts
-import { parseFromString, parseFromUri } from "ject";
+import { parseFromString, parseFromUri } from "json-ject";
 
 // Parse from a string
 const result = await parseFromString(`{
