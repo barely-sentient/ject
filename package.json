@@ -1,0 +1,42 @@
+{
+  "name": "ject",
+  "version": "1.0.0",
+  "description": "A JSON compilation utility that allows much more modular JSON",
+  "keywords": [
+    "Ject",
+    "Injector",
+    "JSON",
+    "composer"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "null"
+  },
+  "license": "MIT",
+  "author": "John Hudson",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "run:playground": "node playground/tests.js",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.3.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.2"
+  }
+}

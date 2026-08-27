@@ -1,0 +1,20 @@
+{
+    "type": "User", 
+    "properties": {
+        "id": {
+            "type": "number",
+            "required": true
+        },
+        "roleId": {
+            "type": "number",
+            "required": false
+        },
+        "username": {
+            "type": "string",
+            "required": true,
+            "defaultValue": {
+                "@var": "$username"
+            }
+        }
+    } 
+}

@@ -1,0 +1,16 @@
+{
+    "type": "Role", 
+    "properties": {
+        "id": {
+            "type": "number",
+            "required": true
+        },
+        "name": {
+            "type": "string",
+            "required": true,
+            "defaultValue": {
+                "@var": "$defaultRoleName"
+            }
+        }
+    } 
+}

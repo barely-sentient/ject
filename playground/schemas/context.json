@@ -1,0 +1,17 @@
+{
+    "type": "Context", 
+    "properties": {
+        "user": {
+            "@require": "./playground/schemas/user.json"
+        },
+        "role": {
+            "@require": "./playground/schemas/role.json"
+        },
+        "dbPort": {
+            "@default": {
+                "@env": "COLORTERM",
+                "default": 3000
+            }
+        }
+    } 
+}
