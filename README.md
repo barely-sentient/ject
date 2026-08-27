@@ -136,7 +136,7 @@ Directives compose naturally — nested directives are resolved recursively:
 You can register your own directives:
 
 ```ts
-import { parseFromString, Directive } from "ject";
+import { parseFromString, Directive } from "json-ject";
 
 const upperDirective: Directive<string, string> = {
     targetNodeName: "@upper",
