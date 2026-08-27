@@ -1,6 +1,6 @@
 {
-  "name": "ject",
-  "version": "1.0.0",
+  "name": "json-ject",
+  "version": "1.0.1",
   "description": "A JSON compilation utility that allows much more modular JSON",
   "keywords": [
     "Ject",
@@ -10,7 +10,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "null"
+    "url": "git+https://github.com/barely-sentient/ject.git"
   },
   "license": "MIT",
   "author": "John Hudson",

@@ -133,7 +133,6 @@ var envDirective = {
    * or `undefined` when the specified variable is not defined.
    */
   transform: async (envName) => {
-    console.log({ process, envName });
     return process.env[envName];
   }
 };
