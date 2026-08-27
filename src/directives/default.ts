@@ -1,3 +1,4 @@
+import { JectOptions } from "../parse.js";
 import { Directive } from "./types.js";
 
 /**
@@ -84,6 +85,7 @@ export const defaultDirective: Directive<
      */
     transform: async (
         input: Record<string, unknown>,
+        jectConfig: JectOptions, 
         resolve?: (node: unknown) => Promise<unknown>
     ): Promise<unknown> => {
         let value: unknown;

@@ -26,6 +26,20 @@ export type JectOptions<TVariables extends Record<string, unknown> = Record<stri
      * @default []
      */
     directives?: Directive<unknown>[];
+
+    /**
+     * Specify a custom file loader that allows mock FS's to be used
+     * @param path - the path
+     * @returns Promise<object | undefined>
+     */
+    customFileLoader?: (path: string) => Promise<object | undefined>;
+
+    /**
+     * Specify a custom file loader that allows mock URL resolvers to be used
+     * @param path - the path
+     * @returns Promise<object | undefined>
+     */
+    customUrlLoader?: (url: string) => Promise<object | undefined>;
 };
 
 /**
@@ -45,7 +59,7 @@ const createDirectives = (
         {
             ...(requireDirective as Directive<unknown>),
             transformOutput: async (value) => {
-                return handleNode(value, directives);
+                return handleNode(value, directives, options);
             }
         },
         ...(options.directives ?? []),
@@ -124,7 +138,7 @@ export const parseFromString = async <TOutput = unknown>(
 
     const directives = createDirectives(options);
 
-    return await handleNode(result, directives) as TOutput;
+    return await handleNode(result, directives, options) as TOutput;
 };
 
 /**
@@ -157,14 +171,14 @@ export const parseFromUri = async <TOutput = unknown>(
     path: string,
     options: JectOptions = {}
 ): Promise<TOutput | undefined> => {
-    const resolved = await LoadJson(path);
+    const resolved = await LoadJson(path, options);
 
     if (resolved === undefined) {
         return undefined;
     }
 
     const directives = createDirectives(options);
-    const result = await handleNode(resolved, directives);
+    const result = await handleNode(resolved, directives, options);
 
     return result as TOutput;
 };
@@ -183,7 +197,8 @@ export const parseFromUri = async <TOutput = unknown>(
  */
 const handleNode = async (
     node: unknown,
-    directives: Directive<unknown>[]
+    directives: Directive<unknown>[],
+    jectOptions: JectOptions
 ): Promise<unknown> => {
     /*
      * Primitive JSON values do not contain child nodes and therefore require
@@ -201,7 +216,7 @@ const handleNode = async (
      */
     if (Array.isArray(node)) {
         return Promise.all(
-            node.map((entry) => handleNode(entry, directives))
+            node.map((entry) => handleNode(entry, directives, jectOptions))
         );
     }
 
@@ -229,14 +244,14 @@ const handleNode = async (
 
             for (const key of keys) {
                 if (key in resolved) {
-                    resolved[key] = await handleNode(resolved[key], directives);
+                    resolved[key] = await handleNode(resolved[key], directives, jectOptions);
                 }
             }
 
             input = resolved;
         }
 
-        const result = await directive.transform(input, (node) => handleNode(node, directives));
+        const result = await directive.transform(input, jectOptions , (node) => handleNode(node, directives, jectOptions));
 
         /*
          * A directive may produce another Ject document. Resolve the result
@@ -246,7 +261,7 @@ const handleNode = async (
             ? await directive.transformOutput(result as never)
             : result;
 
-        return handleNode(output, directives);
+        return handleNode(output, directives, jectOptions);
     }
 
     /*
@@ -256,7 +271,7 @@ const handleNode = async (
         Object.entries(object).map(async ([key, value]) => {
             return [
                 key,
-                await handleNode(value, directives)
+                await handleNode(value, directives, jectOptions)
             ] as const;
         })
     );

@@ -140,7 +140,7 @@ import { parseFromString, Directive } from "json-ject";
 
 const upperDirective: Directive<string, string> = {
     targetNodeName: "@upper",
-    transform: async (value) => value.toUpperCase()
+    transform: async (value, jectOptions, resolve) => value.toUpperCase()
 };
 
 const result = await parseFromString(
@@ -148,6 +148,111 @@ const result = await parseFromString(
     { directives: [upperDirective] }
 );
 // { name: "HELLO" }
+```
+
+Directives now receive the current `JectOptions` as their second argument — use it to access `variables`, `customFileLoader` / `customUrlLoader`, or any other options passed to `parseFromString` / `parseFromUri`. The optional third argument `resolve` recursively resolves a node through the full directive pipeline (useful for directives like `@default`).
+
+```ts
+const captureDirective: Directive<string, string> = {
+    targetNodeName: "@capture",
+    transform: async (value, jectOptions, resolve) => {
+        console.log(jectOptions.variables); // { $userId: 12 }
+        return value;
+    }
+};
+```
+
+## Custom Loaders
+
+By default `@require` and `parseFromUri` load files from the filesystem in Node (`fs/promises`) and via `fetch` in browsers. You can override this with an in-memory or virtual loader — ideal for tests, virtual file systems, or custom caching.
+
+Loaders are supplied through `JectOptions` and automatically propagated to every nested `@require`.
+
+| Loader | Environment | Replaces |
+|---|---|---|
+| `customFileLoader` | Node.js | `fs.access` + `fs.readFile` |
+| `customUrlLoader` | Browser / `fetch` | `fetch(url).json()` |
+
+When a loader is set it **completely bypasses** the default mechanism — the path/URL is passed straight to your function.
+
+### `customFileLoader` (Node)
+
+```ts
+import { parseFromString, parseFromUri } from "json-ject";
+
+// In-memory virtual filesystem
+const virtualFs = new Map<string, object>([
+    ["base.json", { host: "localhost", port: 3000 }],
+    ["prod.json", { host: "prod.example.com" }],
+]);
+
+const loader = async (path: string) => virtualFs.get(path);
+
+// With parseFromString + @require
+const result = await parseFromString(JSON.stringify({
+    config: { "@require": ["base.json", "prod.json"] }
+}), {
+    customFileLoader: loader
+});
+// { config: { host: "prod.example.com", port: 3000 } }
+
+// With parseFromUri — the entry file itself is loaded via the custom loader
+const config = await parseFromUri("base.json", { customFileLoader: loader });
+// { host: "localhost", port: 3000 }
+
+// Nested @require also uses the same loader, and its result is
+// recursively resolved (so @var / @env inside still work)
+const withVars = await parseFromString(JSON.stringify({
+    data: { "@require": "with-directives.json" }
+}), {
+    variables: { $greeting: "hi" },
+    customFileLoader: async () => ({ nested: { "@var": "$greeting" } })
+});
+// { data: { nested: "hi" } }
+```
+
+Return `undefined` to signal “not found” — for a single `@require` the node becomes `undefined`, for an array of paths the whole `@require` resolves to `undefined` (mirroring filesystem `ENOENT` handling).
+
+```ts
+const result = await parseFromString(JSON.stringify({
+    data: { "@require": "missing.json" }
+}), {
+    customFileLoader: async () => undefined
+});
+// { data: undefined }
+```
+
+### `customUrlLoader` (Browser)
+
+Used when Ject detects a non-Node environment (`process.versions.node` absent). Supply it the same way:
+
+```ts
+const result = await parseFromString(JSON.stringify({
+    data: { "@require": "https://example.com/data.json" }
+}), {
+    customUrlLoader: async (url) => {
+        const cached = await myCache.match(url);
+        if (cached) return cached.json();
+        const res = await fetch(url);
+        return res.json();
+    }
+});
+
+// parseFromUri also respects it
+const remote = await parseFromUri("https://example.com/entry.json", {
+    customUrlLoader: async (url) => ({ fromUrl: true, url })
+});
+```
+
+In Node tests you can force the browser branch (as the test suite does) or simply use `customFileLoader` for all Node cases. Custom directives can also consume the loaders directly:
+
+```ts
+const loaderDirective: Directive<string, unknown> = {
+    targetNodeName: "@loader",
+    transform: async (value, jectOptions) => {
+        return jectOptions.customFileLoader?.(value) ?? value;
+    }
+};
 ```
 
 ## API
@@ -180,6 +285,10 @@ Returns `Promise<T | undefined>`.
 |----------|------|---------|-------------|
 | `variables` | `Record<string, unknown>` | `{}` | Values available to `@var` |
 | `directives` | `Directive[]` | `[]` | Custom directives to register |
+| `customFileLoader` | `(path: string) => Promise<object \| undefined>` | `undefined` | Override filesystem loading in Node — called for every `@require` and for `parseFromUri` entry file |
+| `customUrlLoader` | `(url: string) => Promise<object \| undefined>` | `undefined` | Override `fetch` loading in browsers — called for every `@require` and for `parseFromUri` entry URL |
+
+Every `Directive.transform` receives `JectOptions` as its second argument: `transform(value, jectOptions, resolve?)`.
 
 ## Development
 

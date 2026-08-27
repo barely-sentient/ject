@@ -1,3 +1,5 @@
+import { JectOptions } from "../parse.js";
+
 /**
  * Defines a transformation that can be applied to a JSON node during
  * document resolution.
@@ -72,7 +74,7 @@ export type Directive<TInput = unknown, TOutput = unknown> = {
      * }
      * ```
      */
-    transform: (value: TInput, resolve?: (node: unknown) => Promise<unknown>) => Promise<TOutput>,
+    transform: (value: TInput, jectOptions: JectOptions, resolve?: (node: unknown) => Promise<unknown>) => Promise<TOutput>,
 
     /**
      * Controls whether property values within the directive's input are
