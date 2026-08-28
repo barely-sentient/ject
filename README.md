@@ -4,6 +4,10 @@ A JSON compilation utility that makes JSON files modular, composable, and enviro
 
 Ject parses JSON documents and recursively resolves **directives** — special node markers like `@require`, `@var`, `@env`, and `@default` — into their resolved values. This lets you split large JSON schemas across files, inject environment variables, reference shared defaults, and compose complex configurations from small, reusable pieces.
 
+## Playground
+Want to see it in action?
+[View Playground](https://barely-sentient.github.io/ject-playground/)
+
 ## Installation
 
 ```bash
